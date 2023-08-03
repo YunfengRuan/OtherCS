@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Markov Chain Monte Carlo (MCMC) sampler for polygenic prediction with continuous shrinkage (CS) priors.
+Markov Chain Monte Carlo (MCMC) sampler for whatever prediction with continuous shrinkage (CS) priors.
 
 """
 
@@ -21,10 +21,10 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
 
     # derived stats
     beta_mrg = sp.array(sst_dict['BETA'], ndmin=2).T
-    maf = sp.array(sst_dict['MAF'], ndmin=2).T
+    # maf = sp.array(sst_dict['MAF'], ndmin=2).T
     n_pst = (n_iter-n_burnin)/thin
     p = len(sst_dict['SNP'])
-    n_blk = len(ld_blk)
+    # & _blk = len(ld_blk)
 
     # initialization
     beta = sp.zeros((p,1))
@@ -45,19 +45,18 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
         if itr % 100 == 0:
             print('--- iter-' + str(itr) + ' ---')
 
-        mm = 0; quad = 0.0
-        for kk in range(n_blk):
-            if blk_size[kk] == 0:
-                continue
-            else:
-                idx_blk = range(mm,mm+blk_size[kk])
-                dinvt = ld_blk[kk]+sp.diag(1.0/psi[idx_blk].T[0])
-                dinvt_chol = linalg.cholesky(dinvt)
-                beta_tmp = linalg.solve_triangular(dinvt_chol, beta_mrg[idx_blk], trans='T') + sp.sqrt(sigma/n)*random.randn(len(idx_blk),1)
-                beta[idx_blk] = linalg.solve_triangular(dinvt_chol, beta_tmp, trans='N')
-                quad += sp.dot(sp.dot(beta[idx_blk].T, dinvt), beta[idx_blk])
-                mm += blk_size[kk]
-
+        quad = 0.0
+        #for kk in range(n_blk):
+        #    if blk_size[kk] == 0:
+        #        continue
+        #    else:
+        #        idx_blk = range(mm,mm+blk_size[kk])
+        dinvt = ld_blk+sp.diag(1.0/psi.T[0])
+        dinvt_chol = linalg.cholesky(dinvt)
+        beta_tmp = linalg.solve_triangular(dinvt_chol, beta_mrg, trans='T') + sp.sqrt(sigma/n)*random.randn(p,1)
+        beta = linalg.solve_triangular(dinvt_chol, beta_tmp, trans='N')
+        quad += sp.dot(sp.dot(beta[idx_blk].T, dinvt), beta[idx_blk])
+        
         err = max(n/2.0*(1.0-2.0*sum(beta*beta_mrg)+quad), n/2.0*sum(beta**2/psi))
         sigma = 1.0/random.gamma((n+p)/2.0, 1.0/err)
 
